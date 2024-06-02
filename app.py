@@ -3,6 +3,7 @@ import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from scipy.special import softmax
+import urllib.parse
 
 # Initialize Flask app
 app = Flask(__name__)
