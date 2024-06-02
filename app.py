@@ -1,0 +1,60 @@
+from flask import Flask, request, jsonify
+import nltk
+from nltk.sentiment import SentimentIntensityAnalyzer
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from scipy.special import softmax
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Load NLTK's VADER
+nltk.download('vader_lexicon')
+sia = SentimentIntensityAnalyzer()
+
+# Load a smaller transformer model and tokenizer (e.g., DistilBERT)
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
+
+def analyze_sentiment(text):
+    # VADER sentiment analysis
+    vader_result = sia.polarity_scores(text)
+
+    # DistilBERT sentiment analysis
+    encoded_input = tokenizer(text, return_tensors='pt')
+    output = model(**encoded_input)
+    scores = output.logits[0].detach().numpy()
+    scores = softmax(scores)
+    distilbert_result = {
+        'distilbert_neg': scores[0],
+        'distilbert_pos': scores[1]
+    }
+
+    return {**vader_result, **distilbert_result}
+
+def sentiment_to_stars(sentiment_score):
+    thresholds = [0.2, 0.4, 0.6, 0.8]
+    if sentiment_score <= thresholds[0]:
+        return 1
+    elif sentiment_score <= thresholds[1]:
+        return 2
+    elif sentiment_score <= thresholds[2]:
+        return 3
+    elif sentiment_score <= thresholds[3]:
+        return 4
+    else:
+        return 5
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    data = request.json
+    text = data['text']
+    sentiment_scores = analyze_sentiment(text)
+    star_rating = sentiment_to_stars(sentiment_scores['distilbert_pos'])
+    response = {
+        'sentiment_scores': sentiment_scores,
+        'star_rating': star_rating
+    }
+    return jsonify(response)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
