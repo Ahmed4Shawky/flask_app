@@ -1,9 +1,8 @@
 from flask import Flask, request, jsonify
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+import requests
 from scipy.special import softmax
-import urllib.parse
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -12,25 +11,27 @@ app = Flask(__name__)
 nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
-# Load a smaller transformer model and tokenizer (e.g., DistilBERT)
-tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
-
 def analyze_sentiment(text):
     # VADER sentiment analysis
     vader_result = sia.polarity_scores(text)
 
-    # DistilBERT sentiment analysis
-    encoded_input = tokenizer(text, return_tensors='pt')
-    output = model(**encoded_input)
-    scores = output.logits[0].detach().numpy()
-    scores = softmax(scores)
-    distilbert_result = {
-        'distilbert_neg': scores[0],
-        'distilbert_pos': scores[1]
+    # RoBERTa sentiment analysis via Hugging Face Inference API
+    api_url = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
+    headers = {"Authorization": "Bearer YOUR_HUGGING_FACE_API_TOKEN"}
+    payload = {"inputs": text}
+
+    response = requests.post(api_url, headers=headers, json=payload)
+    api_result = response.json()
+
+    # Assuming the API returns logits that we need to softmax
+    scores = softmax([api_result[0]['score_neg'], api_result[0]['score_neu'], api_result[0]['score_pos']])
+    roberta_result = {
+        'roberta_neg': scores[0],
+        'roberta_neu': scores[1],
+        'roberta_pos': scores[2]
     }
 
-    return {**vader_result, **distilbert_result}
+    return {**vader_result, **roberta_result}
 
 def sentiment_to_stars(sentiment_score):
     thresholds = [0.2, 0.4, 0.6, 0.8]
@@ -50,7 +51,7 @@ def analyze():
     data = request.json
     text = data['text']
     sentiment_scores = analyze_sentiment(text)
-    star_rating = sentiment_to_stars(sentiment_scores['distilbert_pos'])
+    star_rating = sentiment_to_stars(sentiment_scores['roberta_pos'])
     response = {
         'sentiment_scores': sentiment_scores,
         'star_rating': star_rating
