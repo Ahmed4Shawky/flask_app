@@ -14,7 +14,7 @@ nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
 # Hugging Face API key (ensure this is set in your environment variables)
-HUGGING_FACE_API_KEY = "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"
+HUGGING_FACE_API_KEY = "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"
 
 def analyze_sentiment(text):
     # VADER sentiment analysis
@@ -71,8 +71,8 @@ def sentiment_to_stars(sentiment_score):
         return 5
 
 @app.route('/analyze', methods=['POST'])
-async def analyze():
-    data = await request.json
+def analyze():
+    data = request.json
     text = data['text']
     sentiment_scores = analyze_sentiment(text)
     star_rating = sentiment_to_stars(sentiment_scores.get('roberta_pos'))
