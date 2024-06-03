@@ -1,6 +1,6 @@
 Flask
 nltk
-requests
 scipy
 aiohttp
 uvicorn
+asgiref
