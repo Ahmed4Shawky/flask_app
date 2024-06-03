@@ -17,19 +17,16 @@ def analyze_sentiment(text):
 
     # RoBERTa sentiment analysis via Hugging Face Inference API
     api_url = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
-    headers = {"Authorization": "Bearer YOUR_HUGGING_FACE_API_TOKEN"}
+    headers = {"Authorization": "Bearer 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"}  # Replace YOUR_HUGGING_FACE_API_KEY with your actual key
     payload = {"inputs": text}
 
     response = requests.post(api_url, headers=headers, json=payload)
     api_result = response.json()
 
-    # Assuming the API returns logits that we need to softmax
-    scores = softmax([api_result[0]['score_neg'], api_result[0]['score_neu'], api_result[0]['score_pos']])
-    roberta_result = {
-        'roberta_neg': scores[0],
-        'roberta_neu': scores[1],
-        'roberta_pos': scores[2]
-    }
+    # Ensure the structure matches expected keys
+    labels = ['roberta_neg', 'roberta_neu', 'roberta_pos']
+    scores = softmax([result['score'] for result in api_result[0]])
+    roberta_result = dict(zip(labels, scores))
 
     return {**vader_result, **roberta_result}
 
