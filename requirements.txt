@@ -1,6 +1,5 @@
 Flask
 nltk
-transformers
+requests
 scipy
-Werkzeug
-torch
+
