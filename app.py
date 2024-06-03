@@ -3,12 +3,12 @@ import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
-import pandas as pd
+import torch
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Load NLTK's VADER
+# Load NLTK's VADER lexicon
 nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
@@ -22,7 +22,8 @@ def analyze_sentiment(text):
 
     # RoBERTa sentiment analysis
     encoded_input = tokenizer(text, return_tensors='pt')
-    output = model(**encoded_input)
+    with torch.no_grad():
+        output = model(**encoded_input)
     scores = output[0][0].detach().numpy()
     scores = softmax(scores)
     roberta_result = {
@@ -49,7 +50,9 @@ def sentiment_to_stars(sentiment_score):
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.json
-    text = data['text']
+    text = data.get('text', '')
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
     sentiment_scores = analyze_sentiment(text)
     star_rating = sentiment_to_stars(sentiment_scores['roberta_pos'])
     response = {
