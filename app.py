@@ -4,6 +4,7 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 import aiohttp
 import asyncio
 from scipy.special import softmax
+from asgiref.wsgi import WsgiToAsgi
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -14,7 +15,7 @@ sia = SentimentIntensityAnalyzer()
 
 async def fetch_roberta_sentiment(text, session):
     api_url = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
-    headers = {"Authorization": "Bearer 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"}  # Replace with your actual key
+    headers = {"Authorization": "Bearer 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"}  
     payload = {"inputs": text}
     async with session.post(api_url, headers=headers, json=payload) as response:
         return await response.json()
@@ -62,6 +63,9 @@ async def analyze():
     }
     return jsonify(response)
 
+# Wrap the Flask app with ASGI
+asgi_app = WsgiToAsgi(app)
+
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=5000)
+    uvicorn.run(asgi_app, host='0.0.0.0', port=5000)
