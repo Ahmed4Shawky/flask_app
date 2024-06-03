@@ -4,6 +4,7 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 import requests
 from scipy.special import softmax
 import logging
+from asgiref.wsgi import WsgiToAsgi
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -31,7 +32,7 @@ def analyze_sentiment(text):
 
         # Assuming the API returns logits that we need to softmax
         try:
-            scores = softmax([api_result[0]['score'] for result in api_result])
+            scores = softmax([result['score'] for result in api_result])
             roberta_result = {
                 'roberta_neg': scores[0],
                 'roberta_neu': scores[1],
@@ -83,3 +84,6 @@ async def analyze():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+# Wrap the Flask app with ASGI compatibility
+asgi_app = WsgiToAsgi(app)
