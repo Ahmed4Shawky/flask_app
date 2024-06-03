@@ -1,8 +1,6 @@
 Flask
 nltk
+transformers
+torch
 scipy
-requests
-uvicorn
-asgiref
-
-
+pandas
